@@ -25,6 +25,7 @@
 ```bash
 git clone https://github.com/VASILIYKAS/Async-python-Game-about-space.git
 ```
+- Перейдите в папку с проектом используя команду `cd`.
 - Рекомендуется создать виртуальное окружение. Для этого нужно выполнить команду: 
 ```bash
 python -m venv .venv
