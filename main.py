@@ -19,11 +19,13 @@ STARS_COUNT = int(os.getenv('STARS_COUNT', 200))
 SPACESHIP_SPEED = int(os.getenv('SPACESHIP_SPEED', 2))
 
 
-async def blink(canvas, row, column, symbol='*'):
+async def blink(canvas, row, column, symbol='*', offset_tics=0):
+    for _ in range(offset_tics):
+        await asyncio.sleep(0)
+
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        for _ in range(random.randint(0, 20)):
-            await asyncio.sleep(0)
+        for _ in range(20):
             await asyncio.sleep(0)
 
         canvas.addstr(row, column, symbol)
@@ -48,7 +50,7 @@ async def animate_spaceship(canvas, coroutines):
     with open('animations/spaceship/rocket_frame_2.txt', 'r') as file_content:
         frame_2 = file_content.read()
     
-    frames = [frame_1, frame_2]
+    frames = [frame_1, frame_1, frame_2, frame_2]
     
     ship_height, ship_width = get_frame_size(frame_1)
 
@@ -82,12 +84,15 @@ def draw(canvas):
     coroutines = []
     
     height, width = canvas.getmaxyx()
+    
     symbols = ['*', '+', '.', ':']
+
     for _ in range(STARS_COUNT):
         row = random.randint(1, height - 2)
         column = random.randint(1, width - 2)
         symbol = random.choice(symbols)
-        coroutines.append(blink(canvas, row, column, symbol))
+        offset = random.randint(0, 20)
+        coroutines.append(blink(canvas, row, column, symbol, offset_tics=offset))
     
     coroutines.append(animate_spaceship(canvas, coroutines))
 
