@@ -39,31 +39,7 @@ async def blink(canvas, row, column, symbol='*'):
             await asyncio.sleep(0)
 
 
-async def animate_spaceship(canvas, position, frames):
-    cycle_frames = itertools.cycle(frames)
-    current_frame = next(cycle_frames)
-    
-    while True:
-        row, column = position[0], position[1]
-        
-        draw_frame(canvas, row, column, current_frame)
-
-        await asyncio.sleep(0)
-        await asyncio.sleep(0)
-
-        draw_frame(canvas, row, column, current_frame, negative=True)
-
-        current_frame = next(cycle_frames)
-    
-    
-def draw(canvas):
-    row, column = (5, 20)
-    
-    canvas.border()
-    curses.curs_set(False)
-    
-    canvas.nodelay(True)
-
+async def animate_spaceship(canvas, coroutines):
     height, width = canvas.getmaxyx()
     
     with open('animations/spaceship/rocket_frame_1.txt', 'r') as file_content:
@@ -75,36 +51,47 @@ def draw(canvas):
     frames = [frame_1, frame_2]
     
     ship_height, ship_width = get_frame_size(frame_1)
+
     ship_row = height // 2
     ship_column = width // 2 - ship_width // 2
+
+    for frame in itertools.cycle(frames):
+        rows_dir, cols_dir, space_pressed = read_controls(canvas)
+
+        ship_row += rows_dir * SPACESHIP_SPEED
+        ship_column += cols_dir * SPACESHIP_SPEED
+
+        ship_row = max(1, min(ship_row, height - ship_height - 1))
+        ship_column = max(1, min(ship_column, width - ship_width - 1))
+
+        if space_pressed:
+            fire_row = ship_row
+            fire_col = ship_column + ship_width // 2
+            coroutines.append(fire(canvas, fire_row, fire_col))
+        
+        draw_frame(canvas, ship_row, ship_column, frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, ship_row, ship_column, frame, negative=True)
+
     
-    ship_position = [ship_row, ship_column]
+def draw(canvas):
+    canvas.border()
+    curses.curs_set(False)
+    canvas.nodelay(True)
     
     coroutines = []
     
+    height, width = canvas.getmaxyx()
     symbols = ['*', '+', '.', ':']
     for _ in range(STARS_COUNT):
         row = random.randint(1, height - 2)
         column = random.randint(1, width - 2)
         symbol = random.choice(symbols)
         coroutines.append(blink(canvas, row, column, symbol))
-        
-    coroutines.append(animate_spaceship(canvas, ship_position, frames))
-        
+    
+    coroutines.append(animate_spaceship(canvas, coroutines))
+
     while coroutines:
-        rows_dir, columns_dir, space_pressed = read_controls(canvas)
-
-        ship_position[0] += rows_dir * SPACESHIP_SPEED
-        ship_position[1] += columns_dir * SPACESHIP_SPEED
-
-        ship_position[0] = max(1, min(ship_position[0], height - ship_height - 1))
-        ship_position[1] = max(1, min(ship_position[1], width - ship_width - 1))
-
-        if space_pressed:
-            fire_row = ship_position[0]
-            fire_col = ship_position[1] + ship_width // 2
-            coroutines.append(fire(canvas, fire_row, fire_col))
-
         for coroutine in coroutines.copy():
             try:
                 coroutine.send(None)
